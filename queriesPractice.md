@@ -147,4 +147,4 @@ db.stores.find(
 
 `db.movies.find({title:{$regex:/ma/i}})`
 
-- _Note:_ Here, (i) is a "option" which also help us to check both lower and upper case characters
+- _Note:_ Here, (i) is a "option" which help us to check both lower and upper case characters
