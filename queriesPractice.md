@@ -85,6 +85,17 @@
 
 ### Match & Group Pipeline
 
+- Find how much money each customer has spent on toothbrushes and pizza
+
+```
+db.purchase_orders.aggregate(
+[
+{$match: {product: {$in: ["toothbrush", "pizza"]} } },
+{$group: {_id: "$product", total: { $sum: "$total"} } },
+]
+)
+```
+
 - Find how much has been spent on each product and sort it by price
 
 ```
@@ -97,20 +108,50 @@ db.purchase_orders.aggregate(
 )
 ```
 
-- Find how much money each customer has spent on toothbrushes and pizza
-
-```
-db.purchase_orders.aggregate(
-[
-{$match: {product: {$in: ["toothbrush", "pizza"]} } },
-{$group: {_id: "$product", total: { $sum: "$total"} } },
-]
-)
-```
-
 ### Project Pipline
 
 `db.movies.aggregate([{$project:{_id:0,UpperCase:{$toUpper:"$title"},year:1,rating:1}}])`
+
+- Using Projection With Arrays
+  `db.Friends.aggregate([{$project:{_id:0,examScore:{$slice:["$examScores",1]}}}])`
+
+`db.Friends.aggregate([{$project:{_id:0,examScore:{$slice:["$examScores",-2]}}}])`
+
+`db.Friends.aggregate([{$project:{_id:0,examScore:{$slice:["$examScores",2,1]}}}])`
+
+- Getting length of an array {$size:}
+`db.Friends.aggregate([{$project:{\_id:0,numScore:{$size:"$examScores"}} }])`
+
+- Using the $filter operator
+`db.Friends.aggregate([{$project:{\_id:0,scores:{$filter:{input:"$examScores",as:"sc",cond:{$gt:["$$sc.score",60]}}}}}])`
+
+---
+
+### Unwind pipline
+
+- grouping by hobbies array(Pusing elements into newly created array)
+  `db.Friends.aggregate([{$group:{_id:{age:"$age"},allHobies:{$push:"$hobbies"}}}])`
+
+- Unwind takes one documnet and splits out multiple documents
+  `db.Friends.aggregate([{$unwind:"$hobbies"},{$group:{_id:{age:"$age"},allHobies:{$push:"$hobbies"}}}])`
+
+- Eleminating Duplicate values {$addToSet:}
+  `db.Friends.aggregate([{$unwind:"$hobbies"},{$group:{\_id:{age:"$age"},allHobies:{$addToSet:"$hobbies"}}}]) `
+
+---
+
+## Multiple Piplines
+
+```
+db.Friends.aggregate([
+  {$unwind:"$examScores"},
+  {$project:{name:1,score:"$examScores.score"}},
+  {$sort:{score:-1}},
+  {$group:{_id:"$_id",name:{$first:"$name"},maxScore:{$max:"$score"}}},
+  {$sort:{maxScore:-1}}
+])
+])
+```
 
 ---
 
@@ -147,4 +188,49 @@ db.stores.find(
 
 `db.movies.find({title:{$regex:/ma/i}})`
 
-- _Note:_ Here, (i) is a "option" which help us to check both lower and upper case characters
+- _Note:_ Here, (i) is a "option" which also help us to check both lower and upper case characters
+
+---
+
+## Bulk Actions
+
+- Gives ability to perform write operations in bulk.
+
+```
+db.students.bulkWrite(
+      [
+         { insertOne :
+            {
+               "document" :
+               {
+                  name: "Andrew", major: "Architecture", gpa: 3.2
+               }
+            }
+         },
+         { insertOne :
+            {
+               "document" :
+               {
+                  name: "Terry", major: "Math", gpa: 3.8
+               }
+            }
+         },
+         { updateOne :
+            {
+               filter : { name : "Terry" },
+               update : { $set : { gpa : 4.0 } }
+            }
+         },
+         { deleteOne :
+            { filter : { name : "Kate"} }
+         },
+         { replaceOne :
+            {
+               filter : { name : "Claire" },
+               replacement : { name: "Genny", major: "Counsling", gpa: 2.4 }
+            }
+         }
+    ],
+    {ordered: false}
+   );
+```
